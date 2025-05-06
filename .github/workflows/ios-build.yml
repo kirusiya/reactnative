@@ -9,7 +9,7 @@ jobs:
     runs-on: macos-latest
     env:
       APP_IDENTIFIER: com.ajamba
-      APPLE_TEAM_ID:    ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       APPLE_DEVELOPER_EMAIL: ${{ secrets.APPLE_DEVELOPER_EMAIL }}
 
     steps:
@@ -18,14 +18,16 @@ jobs:
 
       - name: Use Node.js
         uses: actions/setup-node@v4
-        with: { node-version: 20 }
+        with:
+          node-version: '20'
 
       - name: Install JS deps
         run: npm install
 
       - name: Setup Ruby & CocoaPods
         uses: ruby/setup-ruby@v1
-        with: { ruby-version: 3.x }
+        with:
+          ruby-version: '3.x'
       - run: |
           cd ios
           pod install
@@ -33,7 +35,7 @@ jobs:
       - name: Decode cert & profile
         run: |
           mkdir ios/certs
-          echo "${{ secrets.APPLE_CERTIFICATE_P12 }}"  | base64 --decode > ios/certs/dist.p12
+          echo "${{ secrets.APPLE_CERTIFICATE_P12 }}" | base64 --decode > ios/certs/dist.p12
           echo "${{ secrets.APPLE_PROVISIONING_PROFILE }}" | base64 --decode > ios/certs/profile.mobileprovision
 
       - name: Install cert in keychain
