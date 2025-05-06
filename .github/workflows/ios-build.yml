@@ -6,28 +6,35 @@ on:
 
 jobs:
   build-ios:
+    name: Build .ipa on macOS
     runs-on: macos-latest
+
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Use Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
 
-      - name: Install JS deps
-        run: npm install
+      - name: Install dependencies
+        run: |
+          npm install
 
-      - name: Setup Ruby & CocoaPods
+      - name: Setup Ruby for CocoaPods
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.x'
-      - run: |
-          cd ios
-          pod install
+          ruby-version: 3.x
 
-      - name: Archive with Xcode
+      - name: Install CocoaPods
+        run: |
+          gem install cocoapods
+          cd ios && pod install
+
+      # Si quieres evitar la firma, no es necesario instalar el certificado ni el perfil de aprovisionamiento.
+      
+      - name: Build archive
         run: |
           xcodebuild archive \
             -workspace ios/ajamba.xcworkspace \
@@ -39,22 +46,29 @@ jobs:
         run: |
           cat > ExportOptions.plist <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" 
            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
-            <key>method</key>        <string>development</string>
+            <key>method</key><string>development</string>  <!-- Cambia esto a 'ad-hoc' si prefieres -->
+            <key>teamID</key><string>TEAM_ID</string>  <!-- Aquí puedes dejar vacío o remover esta línea -->
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.ajamba</key>
+              <string>com.ajamba</string>  <!-- Ajusta esto a tu App ID -->
+            </dict>
           </dict>
           </plist>
           EOF
 
+          # Exporta el IPA sin firmar (sin claves)
           xcodebuild -exportArchive \
             -archivePath build/ajamba.xcarchive \
             -exportOptionsPlist ExportOptions.plist \
             -exportPath build/ipa
 
-      - name: Upload .ipa as artifact
-        uses: actions/upload-artifact@latest
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v3
         with:
           name: ajamba-ios-ipa
           path: build/ipa/*.ipa
