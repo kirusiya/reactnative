@@ -7,11 +7,6 @@ on:
 jobs:
   build-ios:
     runs-on: macos-latest
-    env:
-      APP_IDENTIFIER: com.ajamba
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      APPLE_DEVELOPER_EMAIL: ${{ secrets.APPLE_DEVELOPER_EMAIL }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,38 +27,13 @@ jobs:
           cd ios
           pod install
 
-      - name: Decode cert & profile
-        run: |
-          mkdir ios/certs
-          echo "${{ secrets.APPLE_CERTIFICATE_P12 }}" | base64 --decode > ios/certs/dist.p12
-          echo "${{ secrets.APPLE_PROVISIONING_PROFILE }}" | base64 --decode > ios/certs/profile.mobileprovision
-
-      - name: Install cert in keychain
-        run: |
-          security create-keychain -p "" build.keychain
-          security import ios/certs/dist.p12 \
-            -k ~/Library/Keychains/build.keychain \
-            -P "${{ secrets.APPLE_CERTIFICATE_PASSWORD }}" \
-            -T /usr/bin/codesign
-          security list-keychains -s ~/Library/Keychains/build.keychain
-          security default-keychain -s ~/Library/Keychains/build.keychain
-          security unlock-keychain -p "" ~/Library/Keychains/build.keychain
-
-      - name: Install provisioning profile
-        run: |
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp ios/certs/profile.mobileprovision \
-             ~/Library/MobileDevice/Provisioning\ Profiles/${{ env.APP_IDENTIFIER }}.mobileprovision
-
       - name: Archive with Xcode
         run: |
           xcodebuild archive \
             -workspace ios/ajamba.xcworkspace \
             -scheme ajamba \
             -configuration Release \
-            -archivePath build/ajamba.xcarchive \
-            DEVELOPMENT_TEAM=${{ env.APPLE_TEAM_ID }} \
-            PROVISIONING_PROFILE_SPECIFIER=${{ env.APP_IDENTIFIER }}
+            -archivePath build/ajamba.xcarchive
 
       - name: Export .ipa
         run: |
@@ -73,13 +43,7 @@ jobs:
            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
-            <key>method</key>        <string>ad-hoc</string>
-            <key>teamID</key>        <string>${{ env.APPLE_TEAM_ID }}</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>${{ env.APP_IDENTIFIER }}</key>
-              <string>${{ env.APP_IDENTIFIER }}</string>
-            </dict>
+            <key>method</key>        <string>development</string>
           </dict>
           </plist>
           EOF
@@ -89,7 +53,7 @@ jobs:
             -exportOptionsPlist ExportOptions.plist \
             -exportPath build/ipa
 
-      - name: Publicar artefacto .ipa
+      - name: Upload .ipa as artifact
         uses: actions/upload-artifact@v3
         with:
           name: ajamba-ios-ipa
