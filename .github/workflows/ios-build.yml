@@ -54,7 +54,7 @@ jobs:
             -exportPath build/ipa
 
       - name: Upload .ipa as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2 # Cambia esto por @v2
         with:
           name: ajamba-ios-ipa
           path: build/ipa/*.ipa
